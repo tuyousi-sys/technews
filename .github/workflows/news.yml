@@ -1,0 +1,41 @@
+name: ニュースを集めて公開
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # 30分ごと(GitHubの都合で、数分から十数分、遅れることがあります)
+  workflow_dispatch:          # 手動でも実行できる
+  push:                       # ファイルを更新したときも実行する
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: ファイルを取り込む
+        uses: actions/checkout@v4
+
+      - name: ニュースを集める
+        run: python3 fetch_news.py
+
+      - name: 公開の準備
+        uses: actions/configure-pages@v5
+
+      - name: 公開するフォルダを渡す
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: 公開する
+        id: deployment
+        uses: actions/deploy-pages@v4
